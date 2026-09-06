@@ -136,8 +136,8 @@ are plain SQL scripts under `src/WarehouseManager.Api/Database/Migrations/`, app
 (`WarehouseManager.Api/Extensions/MigrationExtensions.cs`). Scripts run in filename order,
 each one only once, tracked in DbUp's own journal table. `app.ApplyMigrations()` runs them
 automatically in Development on every `dotnet run`, including creating the target database itself
-if it does not exist yet. Add a new script with the next number prefix (for example
-`0002_...sql`), never edit a script that has already shipped.
+if it does not exist yet. Schema changes go through the `add-migration` skill, which owns the
+numbering, naming, type mapping and immutability rules.
 
 ## Workflow
 
