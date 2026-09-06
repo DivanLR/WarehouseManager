@@ -18,11 +18,12 @@ Schema lives only in numbered SQL scripts under `src/WarehouseManager.Api/Databa
    ```sql
    CREATE TABLE IF NOT EXISTS stock_levels
    (
-       id           uuid PRIMARY KEY,
-       product_code text NOT NULL REFERENCES products (code),
-       quantity     integer NOT NULL DEFAULT 0,
-       updated_at   timestamptz NOT NULL DEFAULT now(),
-       CONSTRAINT uq_stock_levels_product_code UNIQUE (product_code)
+       id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+       product_id uuid NOT NULL,
+       quantity   integer NOT NULL DEFAULT 0,
+       updated_at timestamptz NOT NULL DEFAULT now(),
+       CONSTRAINT fk_stock_levels_product FOREIGN KEY (product_id) REFERENCES products (id),
+       CONSTRAINT uq_stock_levels_product UNIQUE (product_id)
    );
    ```
 

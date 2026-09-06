@@ -1,3 +1,4 @@
+using Dapper;
 using FluentValidation;
 using WarehouseManager.Api.Abstract;
 using WarehouseManager.Api.Behaviors;
@@ -10,6 +11,9 @@ public static class HostDiExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // snake_case columns (warehouse_code) map to PascalCase properties (WarehouseCode).
+        DefaultTypeMap.MatchNamesWithUnderscores = true;
+
         services.AddOpenApi();
 
         services.AddExceptionHandler<GlobalExceptionHandler>();

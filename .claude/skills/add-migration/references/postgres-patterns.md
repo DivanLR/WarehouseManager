@@ -20,8 +20,15 @@
 
 ## Keys
 
-- Natural business key present (code, sku, reference number): make it the `PRIMARY KEY`, `text`.
-- No natural key: `id uuid PRIMARY KEY`, generated in the handler.
+Every table has `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` as its first column, and every
+foreign key references an `id`. This is a standing decision from the user (2026-09-06), so it
+applies without asking.
+
+- Natural business key present (code, sku, reference number): keep it as a `text NOT NULL` column
+  with `CONSTRAINT uq_{table}_{column} UNIQUE ({column})`. It is what humans and the API use to look
+  rows up; the `id` is what other tables link to.
+- Handlers may pass their own `Guid.NewGuid()` or omit `id` and let the default fill it, then read it
+  back with `RETURNING id`.
 - Never `serial`/`identity` unless the user asks for integer ids; they leak insert order and complicate merges.
 
 ## Constraints and indexes
