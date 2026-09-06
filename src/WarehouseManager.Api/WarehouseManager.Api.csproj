@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <UserSecretsId>40d7aff2-06fd-41fe-ba5a-2f3718314050</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WarehouseManager.UnitTests" />
+    <InternalsVisibleTo Include="WarehouseManager.IntegrationTests" />
+    <InternalsVisibleTo Include="WarehouseManager.ArchitectureTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Database\Migrations\*.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="dbup-postgresql" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.DependencyInjection" />
+    <PackageReference Include="Scrutor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Database\Migrations\" />
+    <Folder Include="Features\Products\CreateProduct\" />
+    <Folder Include="Features\Products\GetProducts\" />
+    <Folder Include="_requests\" />
+  </ItemGroup>
+
+</Project>
