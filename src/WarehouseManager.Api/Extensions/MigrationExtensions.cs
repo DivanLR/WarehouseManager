@@ -16,7 +16,6 @@ public static class MigrationExtensions
 
         // Creating the DB to reduce need for manual setups.
         EnsureDatabase.For.PostgresqlDatabase(connectionString);
-
         UpgradeEngine upgrader = DeployChanges.To
             .PostgresqlDatabase(connectionString)
             .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())

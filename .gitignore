@@ -398,3 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 .containers/
+
+# Local HTTP request files (.http) for manual testing, use Scalar instead
+_requests/
+*.http

@@ -1,16 +1,8 @@
 # Command slice
 
-The `CreateProduct` use case as it compiled and passed its tests in this project. Four files in `src/WarehouseManager.Api/Features/Products/CreateProduct/`, plus the entity level response record. For a new use case, rename `Product`/`Products`/`CreateProduct` throughout, change the fields, the SQL, the validation rules and the conflict error, keep the shape.
+The `CreateProduct` use case as it compiled and passed its tests in this project. Four files in `src/WarehouseManager.Api/Features/Products/CreateProduct/`. For a new use case, rename `Product`/`Products`/`CreateProduct` throughout, change the fields, the SQL, the validation rules and the conflict error, keep the shape.
 
-## ../ProductResponse.cs (entity level, shared)
-
-`src/WarehouseManager.Api/Features/Products/ProductResponse.cs`, one per entity, used by every use case that returns the entity.
-
-```csharp
-namespace WarehouseManager.Api.Features.Products;
-
-public sealed record ProductResponse(Guid Id, string Code, string Description);
-```
+Commands return plain `Result`; the endpoint turns success into the shared `SharedModels/SuccessResponse` (`{ "message": "..." }`). A create answers `201 Created` with that body, an update or upsert answers `200 OK` with it (a 204 cannot carry a body). The caller reads state back through the entity's GET. Only reach for `ICommand<T>` when the caller genuinely cannot proceed without a value the database produced.
 
 ## CreateProductRequest.cs
 
@@ -27,10 +19,8 @@ using WarehouseManager.Api.Abstract;
 
 namespace WarehouseManager.Api.Features.Products.CreateProduct;
 
-internal sealed record CreateProductCommand(string Code, string Description) : ICommand<ProductResponse>;
+internal sealed record CreateProductCommand(string Code, string Description) : ICommand;
 ```
-
-A command with nothing to return implements plain `ICommand`, its handler `ICommandHandler<TCommand>` returning `Result`, and the endpoint answers `TypedResults.NoContent()`.
 
 ## CreateProductCommandHandler.cs
 
@@ -42,37 +32,39 @@ using WarehouseManager.Api.SharedModels;
 
 namespace WarehouseManager.Api.Features.Products.CreateProduct;
 
-internal sealed class CreateProductCommandHandler(NpgsqlDataSource dataSource)
-    : ICommandHandler<CreateProductCommand, ProductResponse>
+internal sealed class CreateProductCommandHandler(NpgsqlDataSource dataSource) : ICommandHandler<CreateProductCommand>
 {
-    public async Task<Result<ProductResponse>> Handle(CreateProductCommand command, CancellationToken cancellationToken)
+    public async Task<Result> Handle(CreateProductCommand command, CancellationToken cancellationToken)
     {
-        await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var id = Guid.NewGuid();
 
         try
         {
-            Guid id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(
+            await connection.ExecuteAsync(new CommandDefinition(
                 """
-                INSERT INTO products (code, description)
-                VALUES (@Code, @Description)
-                RETURNING id
+                INSERT INTO products (id, code, description)
+                VALUES (@Id, @Code, @Description)
                 """,
-                command,
+                new { Id = id, command.Code, command.Description },
                 cancellationToken: cancellationToken));
-
-            return Result.Success(new ProductResponse(id, command.Code, command.Description));
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
-            return Result.Failure<ProductResponse>(Error.Conflict(
+            return Result.Failure(Error.Conflict(
                 "Products.DuplicateCode",
                 $"A product with code '{command.Code}' already exists."));
         }
+
+        return Result.Success();
     }
 }
 ```
 
-Dapper binds `@Code` and `@Description` from the command record's properties by name. The `id` column has a database default, so the insert omits it and reads it back with `RETURNING id`. For an update or delete, `ExecuteAsync` returns the affected row count; zero rows means `Result.Failure(Error.NotFound("Products.NotFound", ...))`.
+The id is generated in C# with `Guid.NewGuid()` and passed in as `@Id`, a standing preference of the user's, so no `RETURNING` is needed. The anonymous parameter object spreads the command's properties (`command.Code` binds as `@Code`) alongside the extra `Id`. Use `var` freely; the analyzer requires it where the type is apparent and allows it everywhere else.
+
+Resolving a code to an id first (for a table that references another) is a separate `ExecuteScalarAsync<Guid?>("SELECT id FROM ... WHERE code = @Code")`, with `null` mapped to `Error.NotFound`. Several obvious statements beat one clever one; only the write itself has to be atomic. For an update or delete, `ExecuteAsync` returns the affected row count; zero rows means `Result.Failure(Error.NotFound("Products.NotFound", ...))`. For "insert or add to existing", use `INSERT ... ON CONFLICT (...) DO UPDATE SET quantity = table.quantity + EXCLUDED.quantity`, see `Features/Stock/AddStock`.
 
 ## CreateProductCommandValidator.cs
 
@@ -108,15 +100,15 @@ public sealed class CreateProductEndpoint : IEndpoint
     {
         app.MapPost("products", async (
             CreateProductRequest request,
-            ICommandHandler<CreateProductCommand, ProductResponse> handler,
+            ICommandHandler<CreateProductCommand> handler,
             CancellationToken cancellationToken) =>
         {
             var command = new CreateProductCommand(request.Code, request.Description);
 
-            Result<ProductResponse> result = await handler.Handle(command, cancellationToken);
+            var result = await handler.Handle(command, cancellationToken);
 
             return result.Match(
-                product => TypedResults.Created((string?)null, product),
+                () => TypedResults.Created((string?)null, new SuccessResponse("Product created.")),
                 failure => failure.ToProblem());
         })
         .WithTags("Products");
@@ -124,4 +116,4 @@ public sealed class CreateProductEndpoint : IEndpoint
 }
 ```
 
-`Created` carries the body so the caller receives the generated `Id`. The location is `null` until a `GET /products/{id}` exists; once it does, pass `$"/products/{product.Id}"`. Route parameters go on the lambda as ordinary parameters: `app.MapPut("products/{id:guid}", async (Guid id, UpdateProductRequest request, ...)`. PUT and DELETE answer `TypedResults.NoContent()`.
+Success result by verb, always with a `SuccessResponse` body and a short past tense message: POST that creates `TypedResults.Created((string?)null, new SuccessResponse("... created."))`; POST that applies an operation, PUT and DELETE `TypedResults.Ok(new SuccessResponse("... added." / "... updated." / "... deleted."))`. Route parameters go on the lambda as ordinary parameters: `app.MapPut("products/{code}", async (string code, UpdateProductRequest request, ...)`.

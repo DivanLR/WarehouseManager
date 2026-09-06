@@ -7,25 +7,21 @@ namespace WarehouseManager.IntegrationTests.Warehouses;
 public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
-    public async Task CreateWarehouse_Should_ReturnCreatedWithId_ThenAppearInGetWarehouses()
+    public async Task CreateWarehouse_Should_ReturnCreated_ThenAppearInGetWarehouses()
     {
         var request = new { Code = $"WH-{Guid.NewGuid():N}", Name = "Test depot" };
 
-        HttpResponseMessage createResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var createResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await createResponse.Content.ReadFromJsonAsync<SuccessResponse>())!.Message.ShouldBe("Warehouse created.");
 
-        WarehouseResponse? created = await createResponse.Content.ReadFromJsonAsync<WarehouseResponse>();
-        created.ShouldNotBeNull();
-        created.Id.ShouldNotBe(Guid.Empty);
-        created.Code.ShouldBe(request.Code);
-
-        HttpResponseMessage getResponse = await HttpClient.GetAsync("warehouses");
+        var getResponse = await HttpClient.GetAsync("warehouses");
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        List<WarehouseResponse>? warehouses = await getResponse.Content.ReadFromJsonAsync<List<WarehouseResponse>>();
+        var warehouses = await getResponse.Content.ReadFromJsonAsync<List<WarehouseResponse>>();
 
         warehouses.ShouldNotBeNull();
-        warehouses.ShouldContain(w => w.Id == created.Id && w.Code == request.Code && w.Name == request.Name);
+        warehouses.ShouldContain(w => w.Id != Guid.Empty && w.Code == request.Code && w.Name == request.Name);
     }
 
     [Fact]
@@ -35,7 +31,7 @@ public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : Base
 
         (await HttpClient.PostAsJsonAsync("warehouses", request)).StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        HttpResponseMessage duplicateResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var duplicateResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
 
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
@@ -45,10 +41,12 @@ public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : Base
     {
         var request = new { Code = string.Empty, Name = "No code" };
 
-        HttpResponseMessage response = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var response = await HttpClient.PostAsJsonAsync("warehouses", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     private sealed record WarehouseResponse(Guid Id, string Code, string Name);
+
+    private sealed record SuccessResponse(string Message);
 }

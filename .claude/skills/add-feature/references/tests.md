@@ -91,11 +91,11 @@ public sealed class ProductsTests(IntegrationTestWebAppFactory factory) : BaseIn
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
-    private sealed record ProductResponse(string Code, string Description);
+    private sealed record ProductResponse(Guid Id, string Code, string Description);
 }
 ```
 
-The private `ProductResponse` record is deliberate: the test deserialises the wire shape independently of the API's own type, so a change to the contract shows up as a failing test rather than being silently absorbed.
+Creates answer `201` with a `SuccessResponse` body; assert its `Message` once, then prove the write through the entity's GET rather than by reading anything else from the POST response. The private `ProductResponse` record is deliberate: the test deserialises the wire shape independently of the API's own type, so a change to the contract shows up as a failing test rather than being silently absorbed.
 
 Cover, per endpoint: the happy path, and each `Error` the handler can return (409 for a conflict, 404 for a missing key, 400 for a validation failure by posting an empty required field).
 

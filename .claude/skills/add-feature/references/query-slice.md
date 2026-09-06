@@ -29,18 +29,20 @@ internal sealed class GetProductsQueryHandler(NpgsqlDataSource dataSource)
     {
         await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync(cancellationToken);
 
-        IReadOnlyCollection<ProductResponse> products = [.. await connection.QueryAsync<ProductResponse>(new CommandDefinition(
+        var products = await connection.QueryAsync<ProductResponse>(new CommandDefinition(
             """
             SELECT id, code, description
             FROM products
             ORDER BY code
             """,
-            cancellationToken: cancellationToken))];
+            cancellationToken: cancellationToken));
 
-        return Result.Success(products);
+        return Result.Success<IReadOnlyCollection<ProductResponse>>(products.AsList());
     }
 }
 ```
+
+`QueryAsync<T>` returns `IEnumerable<T>`; Dapper's `AsList()` returns the `List<T>` it already materialised (no copy), and the explicit type argument on `Result.Success<...>` is what converts it to the handler's `IReadOnlyCollection<T>` contract. The user prefers `var` on the awaited line over a collection expression with an explicit type.
 
 Dapper fills the record's constructor by column name, case insensitively and with underscores ignored (`DefaultTypeMap.MatchNamesWithUnderscores` is on), so `warehouse_id` maps to `WarehouseId` with no alias.
 

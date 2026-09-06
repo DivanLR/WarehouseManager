@@ -10,15 +10,15 @@ public sealed class CreateWarehouseEndpoint : IEndpoint
     {
         app.MapPost("warehouses", async (
             CreateWarehouseRequest request,
-            ICommandHandler<CreateWarehouseCommand, WarehouseResponse> handler,
+            ICommandHandler<CreateWarehouseCommand> handler,
             CancellationToken cancellationToken) =>
         {
             var command = new CreateWarehouseCommand(request.Code, request.Name);
 
-            Result<WarehouseResponse> result = await handler.Handle(command, cancellationToken);
+            var result = await handler.Handle(command, cancellationToken);
 
             return result.Match(
-                warehouse => TypedResults.Created((string?)null, warehouse),
+                () => TypedResults.Created((string?)null, new SuccessResponse("Warehouse created.")),
                 failure => failure.ToProblem());
         })
         .WithTags("Warehouses");

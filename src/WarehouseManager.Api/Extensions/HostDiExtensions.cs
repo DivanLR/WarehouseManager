@@ -11,7 +11,7 @@ public static class HostDiExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // snake_case columns (warehouse_code) map to PascalCase properties (WarehouseCode).
+        // snake_case columns (warehouse_code) map to PascalCase properties (WarehouseCode). - Something I did not know was possible before this. usually in the model we would just go json_property
         DefaultTypeMap.MatchNamesWithUnderscores = true;
 
         services.AddOpenApi();

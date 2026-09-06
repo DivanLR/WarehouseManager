@@ -5,31 +5,31 @@ using WarehouseManager.Api.SharedModels;
 
 namespace WarehouseManager.Api.Features.Warehouses.CreateWarehouse;
 
-internal sealed class CreateWarehouseCommandHandler(NpgsqlDataSource dataSource)
-    : ICommandHandler<CreateWarehouseCommand, WarehouseResponse>
+internal sealed class CreateWarehouseCommandHandler(NpgsqlDataSource dataSource) : ICommandHandler<CreateWarehouseCommand>
 {
-    public async Task<Result<WarehouseResponse>> Handle(CreateWarehouseCommand command, CancellationToken cancellationToken)
+    public async Task<Result> Handle(CreateWarehouseCommand command, CancellationToken cancellationToken)
     {
-        await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var id = Guid.NewGuid();
 
         try
         {
-            Guid id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(
+            await connection.ExecuteAsync(new CommandDefinition(
                 """
-                INSERT INTO warehouses (code, name)
-                VALUES (@Code, @Name)
-                RETURNING id
+                INSERT INTO warehouses (id, code, name)
+                VALUES (@Id, @Code, @Name)
                 """,
-                command,
+                new { Id = id, command.Code, command.Name },
                 cancellationToken: cancellationToken));
-
-            return Result.Success(new WarehouseResponse(id, command.Code, command.Name));
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
-            return Result.Failure<WarehouseResponse>(Error.Conflict(
+            return Result.Failure(Error.Conflict(
                 "Warehouses.DuplicateCode",
                 $"A warehouse with code '{command.Code}' already exists."));
         }
+
+        return Result.Success();
     }
 }

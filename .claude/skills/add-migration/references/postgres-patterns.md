@@ -27,8 +27,9 @@ applies without asking.
 - Natural business key present (code, sku, reference number): keep it as a `text NOT NULL` column
   with `CONSTRAINT uq_{table}_{column} UNIQUE ({column})`. It is what humans and the API use to look
   rows up; the `id` is what other tables link to.
-- Handlers may pass their own `Guid.NewGuid()` or omit `id` and let the default fill it, then read it
-  back with `RETURNING id`.
+- Handlers generate the id in C# (`var id = Guid.NewGuid();`) and pass it in as `@Id`, a standing
+  preference of the user's. The `DEFAULT gen_random_uuid()` stays on the column purely so hand
+  written inserts in psql also work.
 - Never `serial`/`identity` unless the user asks for integer ids; they leak insert order and complicate merges.
 
 ## Constraints and indexes

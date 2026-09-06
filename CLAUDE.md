@@ -57,7 +57,6 @@ src/WarehouseManager.Api/
         {Entity}Response.cs           # public record returned to the caller
         {UseCase}Endpoint.cs          # public sealed class : IEndpoint, maps the route, calls the handler
   SharedModels/             # Result, Error, ErrorType, ValidationError
-  _requests/                # .http files for hitting the endpoints from the IDE
   Program.cs                # composition root only
 
 tests/

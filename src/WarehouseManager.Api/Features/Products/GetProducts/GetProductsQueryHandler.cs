@@ -12,14 +12,14 @@ internal sealed class GetProductsQueryHandler(NpgsqlDataSource dataSource)
     {
         await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync(cancellationToken);
 
-        IReadOnlyCollection<ProductResponse> products = [.. await connection.QueryAsync<ProductResponse>(new CommandDefinition(
+        var products = await connection.QueryAsync<ProductResponse>(new CommandDefinition(
             """
             SELECT id, code, description
             FROM products
             ORDER BY code
             """,
-            cancellationToken: cancellationToken))];
+            cancellationToken: cancellationToken));
 
-        return Result.Success(products);
+        return Result.Success<IReadOnlyCollection<ProductResponse>>(products.AsList());
     }
 }
