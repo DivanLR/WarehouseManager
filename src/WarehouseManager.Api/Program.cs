@@ -1,4 +1,5 @@
 using System.Reflection;
+using Scalar.AspNetCore;
 using WarehouseManager.Api.Extensions;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,7 @@ app.MapEndpoints();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options => options.WithTitle("WarehouseManager API"));
 
     app.ApplyMigrations();
 }

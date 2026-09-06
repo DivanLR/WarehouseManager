@@ -14,15 +14,7 @@ Structure follows the v1 layout of Anton Martyniuk's ShippingService sample (`C:
 
 1. **Classify each use case.** State change is a command (POST, PUT, DELETE); read is a query (GET). Name it `{Verb}{Entity}`: `CreateProduct`, `GetProducts`, `GetProductByCode`, `UpdateProductDescription`. Confirm fields, key, and verbs with the user only where the request left them open.
 
-2. **Table.** If the entity has no table yet, add `src/WarehouseManager.Api/Database/Migrations/{NNNN}_{Description}.sql` with the next unused number. Existing scripts are immutable, schema changes are always a new script. Lowercase snake_case identifiers, the natural business key as `PRIMARY KEY` where one exists, otherwise `uuid`:
-   ```sql
-   CREATE TABLE IF NOT EXISTS products
-   (
-       code        text PRIMARY KEY,
-       description text NOT NULL
-   );
-   ```
-   Scripts are embedded by the wildcard in the csproj and applied by DbUp on `dotnet run` in Development.
+2. **Table.** If the entity has no table yet, use the `add-migration` skill, which owns numbering, the `id uuid PRIMARY KEY` rule, type mapping and immutability. Every table has an `id`; natural codes are `UNIQUE` columns. Handlers insert with `RETURNING id` and hand the id back in the response.
 
 3. **Slice files.** Create `src/WarehouseManager.Api/Features/{Entity}/{UseCase}/` and one file per concern, from [references/command-slice.md](references/command-slice.md) or [references/query-slice.md](references/query-slice.md). Both are the compiled Products code; rename types and adjust SQL and fields, keep everything else.
 
@@ -48,7 +40,7 @@ Done when: build has zero warnings, unit and architecture tests pass, every file
 | `{UseCase}Command.cs` / `{UseCase}Query.cs` | `internal sealed record : ICommand` (or `ICommand<T>`) / `: IQuery<T>` |
 | `{UseCase}CommandHandler.cs` / `{UseCase}QueryHandler.cs` | `internal sealed class`, primary constructor taking `NpgsqlDataSource`, returns `Result` / `Result<T>` |
 | `{UseCase}CommandValidator.cs` | `internal sealed class : AbstractValidator<{UseCase}Command>`, commands only |
-| `{Entity}Response.cs` | `public sealed record`, what the caller receives, queries and value-returning commands |
+| `../{Entity}Response.cs` | `public sealed record` at `Features/{Entity}/`, shared by that entity's use cases, always carries `Guid Id` first |
 | `{UseCase}Endpoint.cs` | `public sealed class : IEndpoint`, inline lambda that resolves the handler and calls it |
 
 Tests: `{UseCase}CommandValidatorTests` (methods `Validate_Should_{Outcome}_When{Condition}`), `{Entity}Tests` (methods `{UseCase}_Should_{Outcome}_When{Condition}`).

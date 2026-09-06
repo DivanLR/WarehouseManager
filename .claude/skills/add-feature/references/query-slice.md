@@ -1,6 +1,6 @@
 # Query slice
 
-The `GetProducts` use case as it compiled in this project. Four files in `src/WarehouseManager.Api/Features/Products/GetProducts/`. Queries have no request record (parameters arrive on the route or query string) and no validator (`ValidationDecorator` wraps commands only).
+The `GetProducts` use case as it compiled and passed its tests in this project. Three files in `src/WarehouseManager.Api/Features/Products/GetProducts/`, reusing the entity level `Features/Products/ProductResponse.cs` shown in [command-slice.md](command-slice.md). Queries have no request record (parameters arrive on the route or query string) and no validator (`ValidationDecorator` wraps commands only).
 
 ## GetProductsQuery.cs
 
@@ -11,16 +11,6 @@ namespace WarehouseManager.Api.Features.Products.GetProducts;
 
 internal sealed record GetProductsQuery : IQuery<IReadOnlyCollection<ProductResponse>>;
 ```
-
-## ProductResponse.cs
-
-```csharp
-namespace WarehouseManager.Api.Features.Products.GetProducts;
-
-public sealed record ProductResponse(string Code, string Description);
-```
-
-Dapper materialises this by matching column names to constructor parameters case insensitively, so `SELECT code, description` fills `(Code, Description)` with no aliases.
 
 ## GetProductsQueryHandler.cs
 
@@ -41,7 +31,7 @@ internal sealed class GetProductsQueryHandler(NpgsqlDataSource dataSource)
 
         IReadOnlyCollection<ProductResponse> products = [.. await connection.QueryAsync<ProductResponse>(new CommandDefinition(
             """
-            SELECT code, description
+            SELECT id, code, description
             FROM products
             ORDER BY code
             """,
@@ -51,6 +41,8 @@ internal sealed class GetProductsQueryHandler(NpgsqlDataSource dataSource)
     }
 }
 ```
+
+Dapper fills the record's constructor by column name, case insensitively and with underscores ignored (`DefaultTypeMap.MatchNamesWithUnderscores` is on), so `warehouse_id` maps to `WarehouseId` with no alias.
 
 ## GetProductsEndpoint.cs
 
@@ -80,12 +72,12 @@ public sealed class GetProductsEndpoint : IEndpoint
 }
 ```
 
-## Single item variant: GetProductByCode
+## Single item variant: GetProductById
 
-Same four files in `Features/Products/GetProductByCode/`. The differences:
+Same three files in `Features/Products/GetProductById/`. The differences:
 
 ```csharp
-internal sealed record GetProductByCodeQuery(string Code) : IQuery<ProductResponse>;
+internal sealed record GetProductByIdQuery(Guid Id) : IQuery<ProductResponse>;
 ```
 
 Handler body:
@@ -93,16 +85,16 @@ Handler body:
 ```csharp
 ProductResponse? product = await connection.QuerySingleOrDefaultAsync<ProductResponse>(new CommandDefinition(
     """
-    SELECT code, description
+    SELECT id, code, description
     FROM products
-    WHERE code = @Code
+    WHERE id = @Id
     """,
     query,
     cancellationToken: cancellationToken));
 
 return product is null
-    ? Result.Failure<ProductResponse>(Error.NotFound("Products.NotFound", $"No product with code '{query.Code}'."))
+    ? Result.Failure<ProductResponse>(Error.NotFound("Products.NotFound", $"No product with id '{query.Id}'."))
     : Result.Success(product);
 ```
 
-Endpoint: `app.MapGet("products/{code}", async (string code, IQueryHandler<GetProductByCodeQuery, ProductResponse> handler, CancellationToken cancellationToken) => ...)` with `new GetProductByCodeQuery(code)` and `result.Match(TypedResults.Ok, failure => failure.ToProblem())`. `ProductResponse` is a concrete record, so the bare `TypedResults.Ok` group is unambiguous here. Reuse `ProductResponse` from `GetProducts` rather than declaring a second one, unless the shapes genuinely differ.
+Endpoint: `app.MapGet("products/{id:guid}", async (Guid id, IQueryHandler<GetProductByIdQuery, ProductResponse> handler, CancellationToken cancellationToken) => ...)` with `new GetProductByIdQuery(id)` and `result.Match(TypedResults.Ok, failure => failure.ToProblem())`. `ProductResponse` is a concrete record, so the bare `TypedResults.Ok` group is unambiguous here. Lookup by natural code is the same shape with `string code`, `WHERE code = @Code` and route `products/by-code/{code}`.

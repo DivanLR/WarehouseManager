@@ -18,6 +18,8 @@ the best ways to structure your project"), adopted on request. The `add-feature`
 - **ASP.NET Core Minimal APIs** — one `IEndpoint` (`Abstract/IEndpoint.cs`) per use case, living inside
   that use case's feature folder, auto discovered and mapped via `app.MapEndpoints()`. Program.cs never
   changes when adding endpoints.
+- **OpenAPI + Scalar** — built in `AddOpenApi()` serves `/openapi/v1.json`; `Scalar.AspNetCore` serves
+  the interactive reference at `/scalar`, Development only. `launchSettings.json` opens it on launch.
 - **PostgreSQL with Dapper**, not EF Core. `NpgsqlDataSource` is injected directly into handlers
   (registered via the `Npgsql.DependencyInjection` package's `AddNpgsqlDataSource`). No repository
   or `IApplicationDbContext` abstraction.
