@@ -40,7 +40,9 @@ deferred at setup time and should be added when a real requirement appears, not 
 ```
 src/WarehouseManager.Api/
   Abstract/                 # IEndpoint, ICommand, ICommandHandler, IQuery, IQueryHandler
-  Behaviors/                # LoggingDecorator, ValidationDecorator (Scrutor TryDecorate), GlobalExceptionHandler
+  Behaviors/                # LoggingDecorator, ValidationDecorator (Scrutor TryDecorate), GlobalExceptionHandler,
+                            # CorrelationIdMiddleware (X-Correlation-Id: echoed if supplied, else the W3C trace id;
+                            # also a log scope, so every log line for a request carries CorrelationId)
   Database/Migrations/      # DbUp SQL scripts, see Commands section below
   Extensions/               # HostDiExtensions (all DI), EndpointExtensions (auto discovery),
                             # EndpointResultsExtensions (Result -> ProblemDetails), ResultExtensions (Match),
