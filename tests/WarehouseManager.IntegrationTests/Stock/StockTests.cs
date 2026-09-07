@@ -12,19 +12,19 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
         var warehouseCode = await CreateWarehouseAsync();
         var productCode = await CreateProductAsync();
 
-        var addResponse = await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 25 });
+        var addResponse = await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 25 });
         addResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await addResponse.Content.ReadFromJsonAsync<SuccessResponse>())!.Message.ShouldBe("Stock added.");
 
-        var byWarehouse = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"stock?warehouseCode={warehouseCode}");
+        var byWarehouse = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"api/stock?warehouseCode={warehouseCode}");
         byWarehouse.ShouldNotBeNull();
         byWarehouse.ShouldContain(s => s.ProductCode == productCode && s.Quantity == 25);
 
-        var byProduct = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"stock?productCode={productCode}");
+        var byProduct = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"api/stock?productCode={productCode}");
         byProduct.ShouldNotBeNull();
         byProduct.ShouldContain(s => s.WarehouseCode == warehouseCode && s.Quantity == 25);
 
-        var byBoth = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"stock?warehouseCode={warehouseCode}&productCode={productCode}");
+        var byBoth = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"api/stock?warehouseCode={warehouseCode}&productCode={productCode}");
         byBoth.ShouldNotBeNull();
         byBoth.Single().Quantity.ShouldBe(25);
     }
@@ -35,10 +35,10 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
         var warehouseCode = await CreateWarehouseAsync();
         var productCode = await CreateProductAsync();
 
-        (await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 10 })).StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 5 })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 10 })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = warehouseCode, ProductCode = productCode, Quantity = 5 })).StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var stock = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"stock?warehouseCode={warehouseCode}&productCode={productCode}");
+        var stock = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"api/stock?warehouseCode={warehouseCode}&productCode={productCode}");
 
         stock.ShouldNotBeNull();
         stock.Single().Quantity.ShouldBe(15);
@@ -49,7 +49,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         var productCode = await CreateProductAsync();
 
-        var response = await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = "WH-DOES-NOT-EXIST", ProductCode = productCode, Quantity = 1 });
+        var response = await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = "WH-DOES-NOT-EXIST", ProductCode = productCode, Quantity = 1 });
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadAsStringAsync()).ShouldContain("Stock.WarehouseNotFound");
@@ -60,7 +60,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         var warehouseCode = await CreateWarehouseAsync();
 
-        var response = await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = warehouseCode, ProductCode = "SKU-DOES-NOT-EXIST", Quantity = 1 });
+        var response = await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = warehouseCode, ProductCode = "SKU-DOES-NOT-EXIST", Quantity = 1 });
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadAsStringAsync()).ShouldContain("Stock.ProductNotFound");
@@ -69,7 +69,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     [Fact]
     public async Task AddStock_Should_ReturnBadRequest_WhenQuantityIsZero()
     {
-        var response = await HttpClient.PostAsJsonAsync("stock", new { WarehouseCode = "WH-001", ProductCode = "SKU-001", Quantity = 0 });
+        var response = await HttpClient.PostAsJsonAsync("api/stock", new { WarehouseCode = "WH-001", ProductCode = "SKU-001", Quantity = 0 });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
@@ -77,7 +77,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     [Fact]
     public async Task GetStock_Should_ReturnNotFound_WhenWarehouseCodeDoesNotExist()
     {
-        var response = await HttpClient.GetAsync("stock?warehouseCode=WH-DOES-NOT-EXIST");
+        var response = await HttpClient.GetAsync("api/stock?warehouseCode=WH-DOES-NOT-EXIST");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
@@ -85,7 +85,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     [Fact]
     public async Task GetStock_Should_ReturnNotFound_WhenProductCodeDoesNotExist()
     {
-        var response = await HttpClient.GetAsync("stock?productCode=SKU-DOES-NOT-EXIST");
+        var response = await HttpClient.GetAsync("api/stock?productCode=SKU-DOES-NOT-EXIST");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
@@ -95,7 +95,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     {
         var warehouseCode = await CreateWarehouseAsync();
 
-        var stock = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"stock?warehouseCode={warehouseCode}");
+        var stock = await HttpClient.GetFromJsonAsync<List<StockResponse>>($"api/stock?warehouseCode={warehouseCode}");
 
         stock.ShouldNotBeNull();
         stock.ShouldBeEmpty();
@@ -104,7 +104,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     private async Task<string> CreateWarehouseAsync()
     {
         var code = $"WH-{Guid.NewGuid():N}";
-        (await HttpClient.PostAsJsonAsync("warehouses", new { Code = code, Name = "Stock test depot" })).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsJsonAsync("api/warehouses", new { Code = code, Name = "Stock test depot" })).EnsureSuccessStatusCode();
 
         return code;
     }
@@ -112,7 +112,7 @@ public sealed class StockTests(IntegrationTestWebAppFactory factory) : BaseInteg
     private async Task<string> CreateProductAsync()
     {
         var code = $"SKU-{Guid.NewGuid():N}";
-        (await HttpClient.PostAsJsonAsync("products", new { Code = code, Description = "Stock test product" })).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsJsonAsync("api/products", new { Code = code, Description = "Stock test product" })).EnsureSuccessStatusCode();
 
         return code;
     }

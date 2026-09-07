@@ -14,7 +14,6 @@ public static class EndpointResultsExtensions
         return Results.Problem(
             title: GetTitle(result.Error),
             detail: GetDetail(result.Error),
-            type: GetType(result.Error.Type),
             statusCode: GetStatusCode(result.Error.Type),
             extensions: GetErrors(result));
 
@@ -25,6 +24,7 @@ public static class EndpointResultsExtensions
                 ErrorType.Problem => error.Code,
                 ErrorType.NotFound => error.Code,
                 ErrorType.Conflict => error.Code,
+                ErrorType.Unauthorized => error.Code,
                 _ => "Server failure"
             };
 
@@ -35,17 +35,8 @@ public static class EndpointResultsExtensions
                 ErrorType.Problem => error.Description,
                 ErrorType.NotFound => error.Description,
                 ErrorType.Conflict => error.Description,
+                ErrorType.Unauthorized => error.Description,
                 _ => "An unexpected error occurred"
-            };
-
-        static string GetType(ErrorType errorType) =>
-            errorType switch
-            {
-                ErrorType.Validation => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-                ErrorType.Problem => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-                ErrorType.NotFound => "https://tools.ietf.org/html/rfc7231#section-6.5.4",
-                ErrorType.Conflict => "https://tools.ietf.org/html/rfc7231#section-6.5.8",
-                _ => "https://tools.ietf.org/html/rfc7231#section-6.6.1"
             };
 
         static int GetStatusCode(ErrorType errorType) =>
@@ -54,6 +45,7 @@ public static class EndpointResultsExtensions
                 ErrorType.Validation or ErrorType.Problem => StatusCodes.Status400BadRequest,
                 ErrorType.NotFound => StatusCodes.Status404NotFound,
                 ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
                 _ => StatusCodes.Status500InternalServerError
             };
 

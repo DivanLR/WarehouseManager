@@ -1,0 +1,13 @@
+<mat-toolbar color="primary">
+  <h1>Warehouse Manager</h1>
+  <span class="spacer"></span>
+
+  @if (isAuthenticated()) {
+    <a mat-button routerLink="/products">Products</a>
+    <button mat-button type="button" (click)="signOut()">Sign out</button>
+  }
+</mat-toolbar>
+
+<main>
+  <router-outlet />
+</main>

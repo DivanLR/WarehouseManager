@@ -13,17 +13,19 @@ WebApplication app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-app.MapEndpoints();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapEndpoints(app.MapGroup("api"));
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options => options.WithTitle("WarehouseManager API"));
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(options => options.WithTitle("WarehouseManager API")).AllowAnonymous();
 
     app.ApplyMigrations();
 }
 
-app.MapHealthChecks("health");
+app.MapHealthChecks("health").AllowAnonymous();
 
 app.UseExceptionHandler();
 

@@ -11,11 +11,11 @@ public sealed class ProductsTests(IntegrationTestWebAppFactory factory) : BaseIn
     {
         var request = new { Code = $"SKU-{Guid.NewGuid():N}", Description = "Test product" };
 
-        var createResponse = await HttpClient.PostAsJsonAsync("products", request);
+        var createResponse = await HttpClient.PostAsJsonAsync("api/products", request);
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await createResponse.Content.ReadFromJsonAsync<SuccessResponse>())!.Message.ShouldBe("Product created.");
 
-        var getResponse = await HttpClient.GetAsync("products");
+        var getResponse = await HttpClient.GetAsync("api/products");
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var products = await getResponse.Content.ReadFromJsonAsync<List<ProductResponse>>();
@@ -29,9 +29,24 @@ public sealed class ProductsTests(IntegrationTestWebAppFactory factory) : BaseIn
     {
         var request = new { Code = $"SKU-{Guid.NewGuid():N}", Description = "Original" };
 
-        (await HttpClient.PostAsJsonAsync("products", request)).StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await HttpClient.PostAsJsonAsync("api/products", request)).StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var duplicateResponse = await HttpClient.PostAsJsonAsync("products", request);
+        var duplicateResponse = await HttpClient.PostAsJsonAsync("api/products", request);
+
+        duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task CreateProduct_Should_ReturnConflict_WhenCodeDiffersOnlyByCase()
+    {
+        var code = $"sku-{Guid.NewGuid():N}";
+
+        (await HttpClient.PostAsJsonAsync("api/products", new { Code = code, Description = "Original" }))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var duplicateResponse = await HttpClient.PostAsJsonAsync(
+            "api/products",
+            new { Code = code.ToUpperInvariant(), Description = "Same code, different case" });
 
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
@@ -41,7 +56,7 @@ public sealed class ProductsTests(IntegrationTestWebAppFactory factory) : BaseIn
     {
         var request = new { Code = string.Empty, Description = "No code" };
 
-        var response = await HttpClient.PostAsJsonAsync("products", request);
+        var response = await HttpClient.PostAsJsonAsync("api/products", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }

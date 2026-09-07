@@ -39,7 +39,7 @@ Done when: build has zero warnings, unit and architecture tests pass, every file
 | `{UseCase}CommandHandler.cs` / `{UseCase}QueryHandler.cs` | `internal sealed class`, primary constructor taking `NpgsqlDataSource`, returns `Result` / `Result<T>` |
 | `{UseCase}CommandValidator.cs` | `internal sealed class : AbstractValidator<{UseCase}Command>`, commands only |
 | `../{Entity}Response.cs` | `public sealed record` at `Features/{Entity}/`, returned by that entity's queries, always carries `Guid Id` first |
-| `{UseCase}Endpoint.cs` | `public sealed class : IEndpoint`, inline lambda that resolves the handler and calls it |
+| `{UseCase}Endpoint.cs` | `public sealed class : IEndpoint`, inline lambda that resolves the handler and calls it. Declare the bare path (`MapGet("products")`); Program.cs's `MapGroup("api")` adds the `/api` prefix, and the authorization fallback policy already protects it |
 
 Tests: `{UseCase}CommandValidatorTests` (methods `Validate_Should_{Outcome}_When{Condition}`), `{Entity}Tests` (methods `{UseCase}_Should_{Outcome}_When{Condition}`).
 

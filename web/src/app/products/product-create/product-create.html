@@ -1,0 +1,49 @@
+<header class="page-header">
+  <h2>New product</h2>
+  <a mat-stroked-button routerLink="/products">Cancel</a>
+</header>
+
+<mat-card>
+  <mat-card-content>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="fill">
+        <mat-label>Code</mat-label>
+        <input matInput formControlName="code" maxlength="50" required />
+        <mat-hint>Unique across all products.</mat-hint>
+
+        @if (form.controls.code.hasError('server')) {
+          <mat-error>{{ form.controls.code.getError('server') }}</mat-error>
+        } @else if (form.controls.code.hasError('required')) {
+          <mat-error>Code is required.</mat-error>
+        } @else if (form.controls.code.hasError('maxlength')) {
+          <mat-error>Code cannot be longer than 50 characters.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Description</mat-label>
+        <input matInput formControlName="description" maxlength="255" required />
+
+        @if (form.controls.description.hasError('server')) {
+          <mat-error>{{ form.controls.description.getError('server') }}</mat-error>
+        } @else if (form.controls.description.hasError('required')) {
+          <mat-error>Description is required.</mat-error>
+        } @else if (form.controls.description.hasError('maxlength')) {
+          <mat-error>Description cannot be longer than 255 characters.</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-flat-button type="submit" [disabled]="submitting()">
+        @if (submitting()) {
+          <mat-progress-spinner diameter="20" mode="indeterminate" aria-label="Creating product" />
+        } @else {
+          Create product
+        }
+      </button>
+    </form>
+  </mat-card-content>
+</mat-card>

@@ -1,4 +1,4 @@
-# WarehouseManager — Web API
+# WarehouseManager — API and Angular client
 
 ## Project Context
 
@@ -32,7 +32,27 @@ the best ways to structure your project"), adopted on request. The `add-feature`
   with `dotnet add package <name>` from the project directory so the version lands centrally.
 - **xUnit** + **Shouldly** + **NSubstitute** + **NetArchTest** + **Testcontainers.PostgreSql** — testing.
 
-No authentication, no Serilog/Seq, no OpenTelemetry, and no Docker Compose yet. All were deliberately
+**Authentication (added 2026-09-07).** JWT bearer. `POST /api/auth/register` and `POST /api/auth/login`
+are the only anonymous endpoints, along with `/health`, `/openapi` and `/scalar`. Everything else is
+protected by an authorization **fallback policy**, so a newly mapped endpoint is secured by default
+and must say `.AllowAnonymous()` to be public. Passwords are hashed with the framework's
+`Authentication/PasswordHasher` (PBKDF2, SHA512, 500k iterations, `HEXHASH-HEXSALT` format); the
+signing key comes from `Jwt:Secret` in user secrets locally, or the `Jwt__Secret` environment
+variable when deployed, and the app refuses to start without it. `Authentication/` follows Milan's
+template: `ITokenProvider`/`TokenProvider` (claims via `ClaimsIdentity`, returns a token string),
+`IPasswordHasher`/`PasswordHasher`, and `IUserContext`/`UserContext` plus
+`ClaimsPrincipalExtensions.GetUserId()` for reading the caller's id. No refresh tokens.
+
+Note that because a fallback policy also covers unmatched routes, an anonymous request to a URL
+that does not exist returns 401 rather than 404. Send a valid token when checking whether a route
+is really gone.
+
+**Every endpoint is mapped under `/api`** (`app.MapEndpoints(app.MapGroup("api"))` in Program.cs), so
+routes are `/api/products`, `/api/stock` and so on. Endpoint files still declare the bare path
+(`MapGet("products")`); the group adds the prefix. The prefix exists so the Angular SPA can own the
+clean paths, since a SPA route and an API route cannot share `/products` on one origin.
+
+No Serilog/Seq, no OpenTelemetry, and no Docker Compose yet. Those were deliberately
 deferred at setup time and should be added when a real requirement appears, not speculatively.
 
 ## Architecture
@@ -64,7 +84,16 @@ tests/
   WarehouseManager.ArchitectureTests/  # NetArchTest. Handlers and endpoints must be sealed.
   WarehouseManager.IntegrationTests/   # WebApplicationFactory<Program> + Testcontainers.PostgreSql.
                                         # Requires Docker running locally to execute.
+
+web/                        # the Angular 20 client (its own npm project, not in the .slnx)
+  CLAUDE.md                 # Angular instructions; they govern all work under web/
+  proxy.conf.json           # dev server proxies /api to http://localhost:5026
+  src/app/{api,auth,products}/
 ```
+
+This repository holds both halves. The API is built with `dotnet build WarehouseManager.slnx` from the
+root; the client with `npm ci` and `ng build` from `web/`. They are independent builds that share
+nothing but the HTTP contract, so a change to one never breaks the other's compilation.
 
 When adding a feature, use the `add-feature` skill. It carries the steps, the naming table, the
 file templates and the compiler gotchas; nothing about slice shape is duplicated here. The one rule
@@ -174,5 +203,8 @@ Do NOT generate code that:
 - Uses an in-memory fake for integration tests — use Testcontainers.PostgreSql
 - Catches bare `Exception` — catch specific types, let `GlobalExceptionHandler` catch the rest
 - Uses string interpolation in log messages — use structured logging templates
-- Adds JWT auth, Serilog/Seq, OpenTelemetry, or Docker Compose without being asked — these were
+- Adds `.RequireAuthorization()` to a new endpoint — the fallback policy already protects it; only
+  `.AllowAnonymous()` changes anything
+- Puts the `/api` prefix in an endpoint's own route string — the `MapGroup("api")` in Program.cs adds it
+- Adds Serilog/Seq, OpenTelemetry, or Docker Compose without being asked — these were
   deliberately deferred, add them when a real requirement appears

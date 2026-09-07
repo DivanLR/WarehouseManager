@@ -12,7 +12,7 @@ internal sealed class AddStockCommandHandler(NpgsqlDataSource dataSource) : ICom
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
 
         var warehouseId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
-            "SELECT id FROM warehouses WHERE code = @WarehouseCode",
+            "SELECT id FROM warehouses WHERE lower(code) = lower(@WarehouseCode)",
             command,
             cancellationToken: cancellationToken));
 
@@ -20,7 +20,7 @@ internal sealed class AddStockCommandHandler(NpgsqlDataSource dataSource) : ICom
             return Result.Failure(Error.NotFound("Stock.WarehouseNotFound", $"No warehouse with code '{command.WarehouseCode}'."));
 
         var productId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
-            "SELECT id FROM products WHERE code = @ProductCode",
+            "SELECT id FROM products WHERE lower(code) = lower(@ProductCode)",
             command,
             cancellationToken: cancellationToken));
 

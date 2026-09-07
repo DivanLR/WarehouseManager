@@ -402,3 +402,8 @@ FodyWeavers.xsd
 # Local HTTP request files (.http) for manual testing, use Scalar instead
 _requests/
 *.http
+
+# Local environment files (may hold connection strings or secrets)
+.env
+.env.*
+!.env.example

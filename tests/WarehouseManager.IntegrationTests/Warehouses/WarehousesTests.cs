@@ -11,11 +11,11 @@ public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : Base
     {
         var request = new { Code = $"WH-{Guid.NewGuid():N}", Name = "Test depot" };
 
-        var createResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var createResponse = await HttpClient.PostAsJsonAsync("api/warehouses", request);
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await createResponse.Content.ReadFromJsonAsync<SuccessResponse>())!.Message.ShouldBe("Warehouse created.");
 
-        var getResponse = await HttpClient.GetAsync("warehouses");
+        var getResponse = await HttpClient.GetAsync("api/warehouses");
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var warehouses = await getResponse.Content.ReadFromJsonAsync<List<WarehouseResponse>>();
@@ -29,9 +29,24 @@ public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : Base
     {
         var request = new { Code = $"WH-{Guid.NewGuid():N}", Name = "Original" };
 
-        (await HttpClient.PostAsJsonAsync("warehouses", request)).StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await HttpClient.PostAsJsonAsync("api/warehouses", request)).StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var duplicateResponse = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var duplicateResponse = await HttpClient.PostAsJsonAsync("api/warehouses", request);
+
+        duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task CreateWarehouse_Should_ReturnConflict_WhenCodeDiffersOnlyByCase()
+    {
+        var code = $"wh-{Guid.NewGuid():N}";
+
+        (await HttpClient.PostAsJsonAsync("api/warehouses", new { Code = code, Name = "Original" }))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var duplicateResponse = await HttpClient.PostAsJsonAsync(
+            "api/warehouses",
+            new { Code = code.ToUpperInvariant(), Name = "Same code, different case" });
 
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
@@ -41,7 +56,7 @@ public sealed class WarehousesTests(IntegrationTestWebAppFactory factory) : Base
     {
         var request = new { Code = string.Empty, Name = "No code" };
 
-        var response = await HttpClient.PostAsJsonAsync("warehouses", request);
+        var response = await HttpClient.PostAsJsonAsync("api/warehouses", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }

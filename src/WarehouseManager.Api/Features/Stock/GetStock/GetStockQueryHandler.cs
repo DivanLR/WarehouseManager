@@ -15,7 +15,7 @@ internal sealed class GetStockQueryHandler(NpgsqlDataSource dataSource)
         if (query.WarehouseCode is { Length: > 0 })
         {
             var warehouseExists = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
-                "SELECT EXISTS (SELECT 1 FROM warehouses WHERE code = @WarehouseCode)",
+                "SELECT EXISTS (SELECT 1 FROM warehouses WHERE lower(code) = lower(@WarehouseCode))",
                 query,
                 cancellationToken: cancellationToken));
 
@@ -27,7 +27,7 @@ internal sealed class GetStockQueryHandler(NpgsqlDataSource dataSource)
         if (query.ProductCode is { Length: > 0 })
         {
             var productExists = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
-                "SELECT EXISTS (SELECT 1 FROM products WHERE code = @ProductCode)",
+                "SELECT EXISTS (SELECT 1 FROM products WHERE lower(code) = lower(@ProductCode))",
                 query,
                 cancellationToken: cancellationToken));
 
@@ -42,8 +42,8 @@ internal sealed class GetStockQueryHandler(NpgsqlDataSource dataSource)
             FROM stock s
             JOIN warehouses w ON w.id = s.warehouse_id
             JOIN products p ON p.id = s.product_id
-            WHERE (@WarehouseCode IS NULL OR w.code = @WarehouseCode)
-              AND (@ProductCode IS NULL OR p.code = @ProductCode)
+            WHERE (@WarehouseCode IS NULL OR lower(w.code) = lower(@WarehouseCode))
+              AND (@ProductCode IS NULL OR lower(p.code) = lower(@ProductCode))
             ORDER BY w.code, p.code
             """,
             new

@@ -14,9 +14,9 @@ internal sealed class CreateOrderCommandHandler(NpgsqlDataSource dataSource) : I
         var ids = await connection.QuerySingleAsync<ResolvedIds>(new CommandDefinition(
             """
             SELECT
-                (SELECT id FROM products   WHERE code = @ProductCode)              AS product_id,
-                (SELECT id FROM warehouses WHERE code = @SourceWarehouseCode)      AS source_warehouse_id,
-                (SELECT id FROM warehouses WHERE code = @DestinationWarehouseCode) AS destination_warehouse_id
+                (SELECT id FROM products   WHERE lower(code) = lower(@ProductCode))              AS product_id,
+                (SELECT id FROM warehouses WHERE lower(code) = lower(@SourceWarehouseCode))      AS source_warehouse_id,
+                (SELECT id FROM warehouses WHERE lower(code) = lower(@DestinationWarehouseCode)) AS destination_warehouse_id
             """,
             command,
             cancellationToken: cancellationToken));
