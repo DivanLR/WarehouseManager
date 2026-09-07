@@ -176,6 +176,20 @@ I used for this project, and I also used their templates as references for what 
 - <https://www.nikolatech.net/>
 - <https://codewithmukesh.com/>
 
+## Custom CQRS, not MediatR
+
+I used a custom CQRS pattern rather than pulling in MediatR or Wolverine. It is four interfaces in
+`Abstract/`, namely `ICommand`, `ICommandHandler`, `IQuery` and `IQueryHandler`, with handlers
+discovered by Scrutor assembly scanning so nothing is registered by hand.
+
+Logging and validation are Scrutor decorators in `Behaviors/` rather than pipeline behaviours on a
+mediator, which keeps the cross cutting concerns explicit and means there is no mediator sitting
+between an endpoint and its handler. Each endpoint resolves its handler straight from DI.
+
+I went this route because the pattern is small enough to own outright, and I would rather understand
+every piece of it than take a dependency for something this size. It also sidesteps the MediatR
+licensing change.
+
 ## Two things I would like to discuss
 
 **Why is Dapper preferred over EF Core?** I have not used Dapper much, but from a visible and
